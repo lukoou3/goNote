@@ -1,0 +1,6 @@
+泛型实践之Map，Reduce，Filter 函数
+https://blog.xintech.co/golang-fan-xing-shi-jian-zhi-map-reduce-filter-han-shu/
+https://blog.csdn.net/alwaysrun/article/details/127828426
+https://fasionchan.com/golang/practices/generic-algorithms/
+
+
