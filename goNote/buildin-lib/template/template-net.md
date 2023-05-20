@@ -866,9 +866,9 @@ func main() {
 运行程序，页面显示：
 
 
-> 
+```
 <script>alert("helloworld")</script>
-
+```
 
 **不转义**
 
