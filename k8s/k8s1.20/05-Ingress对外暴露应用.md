@@ -63,13 +63,153 @@ kubectl get ingress
 ```
 
 ### 测试
+先删除之前测试的pod等：
+```
+[root@node01 ~]# kubectl get deploy,pods,svc
+NAME                  READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/web   2/2     2            2           22h
+
+NAME                       READY   STATUS    RESTARTS   AGE
+pod/web-75868cf59c-5h6mn   1/1     Running   0          22h
+pod/web-75868cf59c-nnwm8   1/1     Running   0          22h
+
+NAME                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
+service/kubernetes   ClusterIP   10.96.0.1        <none>        443/TCP        46h
+service/web          NodePort    10.106.153.189   <none>        80:32479/TCP   22h
+
+[root@node01 ~]# kubectl delete deploy/web
+deployment.apps "web" deleted
+
+[root@node01 ~]# kubectl delete svc/web
+service "web" deleted
+
+[root@node01 ~]# kubectl get deploy,pods,svc
+NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+service/kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   46h
+[root@node01 ~]# 
+```
+测试
+```
+[root@node01 ~]# kubectl apply -f ingress-controller.yaml
+
+[root@node01 ~]# kubectl get pod -n ingress-nginx -o wide
+NAME                             READY   STATUS              RESTARTS   AGE   IP               NODE     NOMINATED NODE   READINESS GATES
+nginx-ingress-controller-c5gnf   0/1     ContainerCreating   0          67s   192.168.216.33   node03   <none>           <none>
+nginx-ingress-controller-m8wxx   0/1     ContainerCreating   0          67s   192.168.216.32   node02   <none>           <none>
+```
+两个node都运行了ingress-controller
+
+创建文件web_deploy_svc_ingress.yaml：
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+      - name: web
+        image: nginx:1.17
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector:
+    app: web
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: webdomain
+spec:
+  rules:
+  - host: web.domain.cn
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: web
+            port:
+              number: 80
+```
+
+```
+[root@node01 apps]# vi web_deploy_svc_ingress.yaml 
+[root@node01 apps]# kubectl apply -f web_deploy_svc_ingress.yaml
+deployment.apps/web created
+service/web created
+ingress.networking.k8s.io/webdomain created
+[root@node01 apps]# kubectl get deploy,pods,svc
+NAME                  READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/web   2/2     2            2           107s
+
+NAME                       READY   STATUS    RESTARTS   AGE
+pod/web-75868cf59c-9gmh8   1/1     Running   0          107s
+pod/web-75868cf59c-t6r4f   1/1     Running   0          107s
+
+NAME                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+service/kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP   46h
+service/web          ClusterIP   10.104.181.90   <none>        80/TCP    107s
+[root@node01 apps]# kubectl get ingress
+NAME        CLASS    HOSTS           ADDRESS   PORTS   AGE
+webdomain   <none>   web.domain.cn             80      117s
+[root@node01 apps]# curl 10.104.181.90
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+[root@node01 apps]#
+```
+
+外面可以通过域名访问：
+```
+# C:\Windows\System32\drivers\etc\hosts
+192.168.216.32 web.domain.cn
+```
+![](assets/markdown-img-paste-20230529221328393.png)
 
 
+```
 
-
-
-
-
-
-
-
+```
