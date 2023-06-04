@@ -13,7 +13,8 @@ Docker运行容器前需要本地存在对应的镜像，如果镜像不存在�
 ## 常用管理命令
 | 指令    | 命令                                              | 描述                                       |
 | ------- | ------------------------------------------------- | ------------------------------------------ |
-| ls      | docker images或者docker image ls                  | 列出镜像                                   |
+| search  | docker search [option] keyword                    | 搜寻镜像                                   |
+| ls      | docker images 或者docker image ls                  | 列出镜像                                   |
 | build   | docker build -t tag .                             | 构建镜像来自Dockerfile                     |
 | history | docker history ubuntu:18.04                       | 查看镜像历史                               |
 | inspect | docker [image] inspect ubuntu:18.04               | 显示一个或多个镜像详细信息                 |

@@ -89,7 +89,158 @@ Docker使用iptables实现网络通信。
 # iptables -t nat -vnL POSTROUTING
 ```
 
+## 命令测试
+```sh
+# 列举镜像
+[root@single ~]# docker images
+REPOSITORY    TAG       IMAGE ID       CREATED         SIZE
+python        3.7       ad37de9b03ef   17 months ago   903MB
+hello-world   latest    feb5d9fea6a5   20 months ago   13.3kB
+[root@single ~]# docker image ls
+REPOSITORY    TAG       IMAGE ID       CREATED         SIZE
+python        3.7       ad37de9b03ef   17 months ago   903MB
+hello-world   latest    feb5d9fea6a5   20 months ago   13.3kB
 
+# 删除镜像，必须先删除对应的容器
+[root@single ~]# docker rmi hello-world
+Untagged: hello-world:latest
+Untagged: hello-world@sha256:10d7d58d5ebd2a652f4d93fdd86da8f265f5318c6a73cc5b6a9798ff6d2b2e67
+Deleted: sha256:feb5d9fea6a5e9606aa995e879d862b825965ba48de054caab5ef356dc6b3412
+Deleted: sha256:e07ee1baac5fae6a26f30cabfe54a36d3402f96afda318fe0a96cec4ca393359
+[root@single ~]# docker image ls
+REPOSITORY   TAG       IMAGE ID       CREATED         SIZE
+python       3.7       ad37de9b03ef   17 months ago   903MB
+
+# 拉取镜像
+[root@single ~]# docker pull nginx:1.17
+1.17: Pulling from library/nginx
+afb6ec6fdc1c: Pull complete
+b90c53a0b692: Pull complete
+11fa52a0fdc0: Pull complete
+Digest: sha256:6fff55753e3b34e36e24e37039ee9eae1fe38a6420d8ae16ef37c92d1eb26699
+Status: Downloaded newer image for nginx:1.17
+docker.io/library/nginx:1.17
+[root@single ~]# docker images
+REPOSITORY   TAG       IMAGE ID       CREATED         SIZE
+python       3.7       ad37de9b03ef   17 months ago   903MB
+nginx        1.17      9beeba249f3e   3 years ago     127MB
+
+# 在前端启动
+[root@single ~]# docker run -p 80:80 --name web nginx:1.17
+192.168.216.1 - - [04/Jun/2023:12:06:03 +0000] "GET / HTTP/1.1" 200 612 "-" "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.5359.95 Safari/537.36" "-"
+192.168.216.1 - - [04/Jun/2023:12:06:22 +0000] "GET / HTTP/1.1" 304 0 "-" "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.5359.95 Safari/537.36" "-"
+172.17.0.1 - - [04/Jun/2023:12:06:58 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.29.0" "-"
+172.17.0.1 - - [04/Jun/2023:12:07:35 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.29.0" "-"
+^C[root@single ~]#
+
+# 本机访问nginx
+[root@single ~]# curl localhost
+
+# 删除容器
+[root@single ~]# docker ps -a
+CONTAINER ID   IMAGE        COMMAND                  CREATED         STATUS                      PORTS     NAMES
+05fcae4b89ba   nginx:1.17   "nginx -g 'daemon of…"   4 minutes ago   Exited (0) 27 seconds ago             web
+[root@single ~]# docker rm web
+web
+[root@single ~]# docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+[root@single ~]#
+
+# 后台启动
+[root@single ~]# docker run -p 80:80 --name web -d nginx:1.17
+2760d38cf8d84e8bb339a0b1999769864aa7e96ccdb627642d6ea7173cdf7611
+[root@single ~]# docker ps
+CONTAINER ID   IMAGE        COMMAND                  CREATED          STATUS          PORTS                               NAMES
+2760d38cf8d8   nginx:1.17   "nginx -g 'daemon of…"   17 seconds ago   Up 16 seconds   0.0.0.0:80->80/tcp, :::80->80/tcp   web
+[root@single ~]# docker rm -f web
+
+# 设置环境变量
+[root@single ~]# docker run -p 80:80 --name web -e aa=test -e bb=test2 -d nginx:1.17
+a67584d4905cb239786c94f5c8c1b6b5df6178f30634bc1069d1c4a9920e9bd0
+[root@single ~]# docker exec -it web bash
+root@a67584d4905c:/# echo $aa
+test
+root@a67584d4905c:/# echo $bb
+test2
+root@a67584d4905c:/# exit
+exit
+[root@single ~]# docker stop web
+web
+[root@single ~]# docker rm web
+web
+[root@single ~]#
+```
+
+```
+# 修改容器的文件，停止容器不影响。只有重新用镜像起一个容器才会重置。
+[root@single ~]# docker run -p 80:80 --name web -d nginx:1.17
+ccb4268695cb582fbd6716c60c930cdd0106096af976ae8d0c716046ed679964
+[root@single ~]# docker exec -it web bash
+root@ccb4268695cb:/# echo "<h2>hellow nginx</h2>" > /usr/share/nginx/html/index.html
+root@ccb4268695cb:/# exit
+exit
+[root@single ~]# curl localhost
+<h2>hellow nginx</h2>
+
+[root@single ~]# docker stop web
+web
+[root@single ~]# docker start web
+web
+[root@single ~]# curl localhost
+<h2>hellow nginx</h2>
+
+
+# 重启一个就是一个全新的环境
+[root@single ~]# docker rm -f web
+web
+[root@single ~]# docker run -p 80:80 --name web -d nginx:1.17
+1d22434d20f2949401d92025356685bc4958b0d8d232f9630ad8f4d93e0af828
+[root@single ~]# curl localhost
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+[root@single ~]#
+
+
+# 使用目录映射后相当于数据持久化了，就是容器删除，换个环境也不影响
+[root@single ~]# docker cp web:/usr/share/nginx/html ./
+Successfully copied 4.1kB to /root/./
+[root@single ~]# echo "<h2>hellow aaa</h2>" >  html/index.html
+[root@single ~]# docker rm -f web
+web
+[root@single ~]# docker run -p 80:80 --name web -v /root/html:/usr/share/nginx/html -d nginx:1.17
+03dcbbeece9508b397138963c0edd06a5e16342e244c6bcf05c405e549b3df76
+[root@single ~]# curl localhost
+<h2>hellow aaa</h2>
+[root@single ~]# docker rm -f web
+web
+[root@single ~]# docker run -p 80:80 --name web -v /root/html:/usr/share/nginx/html -d nginx:1.17
+f3281f7d5d1dcf7b0f814855e034b83e04d5a0615fecfc980017cc1988c8eb4b
+[root@single ~]# curl localhost
+<h2>hellow aaa</h2>
+```
 
 
 
