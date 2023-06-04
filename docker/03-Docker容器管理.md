@@ -242,7 +242,89 @@ f3281f7d5d1dcf7b0f814855e034b83e04d5a0615fecfc980017cc1988c8eb4b
 <h2>hellow aaa</h2>
 ```
 
+容器重启测试
+```
+# 默认是不会重启的
+[root@single ~]# docker run -p 80:80 --name web -v /root/html:/usr/share/nginx/html -d nginx:1.17
+0b9f3690c78483216771f89205b052c057cd19a4993c5344f82902198e723de5
+[root@single ~]# docker top web
+UID                 PID                 PPID                C                   STIME               TTY                 TIME                CMD
+root                3298                3279                0                   20:53               ?                   00:00:00            nginx: master process nginx -g daemon off;
+101                 3329                3298                0                   20:53               ?                   00:00:00            nginx: worker process
+[root@single ~]# ps aux | grep "nginx"
+root       3298  0.0  0.0  10620  3432 ?        Ss   20:53   0:00 nginx: master process nginx -g daemon off;
+101        3329  0.0  0.0  11076  1496 ?        S    20:53   0:00 nginx: worker process
+root       3436  0.0  0.0 112812   980 pts/0    S+   20:56   0:00 grep --color=auto nginx
+[root@single ~]# kill 3298
+[root@single ~]# docker ps
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+[root@single ~]# docker rm web
+web
 
+# 异常退出会重启
+[root@single ~]# docker run -p 80:80 --name web -v /root/html:/usr/share/nginx/html --restart=always -d nginx:1.17
+5352d51c8cafb03ecce41e0f41e2cfcd381ae336a27a10897925d5e9ef86f438
+[root@single ~]# docker ps
+CONTAINER ID   IMAGE        COMMAND                  CREATED         STATUS         PORTS                               NAMES
+5352d51c8caf   nginx:1.17   "nginx -g 'daemon of…"   8 seconds ago   Up 7 seconds   0.0.0.0:80->80/tcp, :::80->80/tcp   web
+[root@single ~]# docker top web
+UID                 PID                 PPID                C                   STIME               TTY                 TIME                CMD
+root                3599                3579                0                   20:59               ?                   00:00:00            nginx: master process nginx -g daemon off;
+101                 3620                3599                0                   20:59               ?                   00:00:00            nginx: worker process
+[root@single ~]# ps aux | grep "nginx"
+root       3599  0.1  0.0  10620  3428 ?        Ss   20:59   0:00 nginx: master process nginx -g daemon off;
+101        3620  0.0  0.0  11076  1496 ?        S    20:59   0:00 nginx: worker process
+root       3643  0.0  0.0 112812   980 pts/0    S+   20:59   0:00 grep --color=auto nginx
+[root@single ~]# kill 3599
+[root@single ~]# docker ps
+CONTAINER ID   IMAGE        COMMAND                  CREATED          STATUS         PORTS                               NAMES
+5352d51c8caf   nginx:1.17   "nginx -g 'daemon of…"   54 seconds ago   Up 3 seconds   0.0.0.0:80->80/tcp, :::80->80/tcp   web
+[root@single ~]# docker ps
+CONTAINER ID   IMAGE        COMMAND                  CREATED              STATUS          PORTS                               NAMES
+5352d51c8caf   nginx:1.17   "nginx -g 'daemon of…"   About a minute ago   Up 19 seconds   0.0.0.0:80->80/tcp, :::80->80/tcp   web
+[root@single ~]# docker top web
+UID                 PID                 PPID                C                   STIME               TTY                 TIME                CMD
+root                3733                3714                0                   21:00               ?                   00:00:00            nginx: master process nginx -g daemon off;
+101                 3756                3733                0                   21:00               ?                   00:00:00            nginx: worker process
+[root@single ~]# ps aux | grep "nginx"
+root       3733  0.0  0.0  10620  3432 ?        Ss   21:00   0:00 nginx: master process nginx -g daemon off;
+101        3756  0.0  0.0  11076  1496 ?        S    21:00   0:00 nginx: worker process
+root       3785  0.0  0.0 112812   980 pts/0    S+   21:00   0:00 grep --color=auto nginx
 
+# 手动stop不会重启
+[root@single ~]# docker stop web
+web
+[root@single ~]# docker ps
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+[root@single ~]# docker ps
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
 
-
+# 然后再start，还是依然会异常自动重启
+[root@single ~]# docker start web
+web
+[root@single ~]# docker ps
+CONTAINER ID   IMAGE        COMMAND                  CREATED         STATUS         PORTS                               NAMES
+5352d51c8caf   nginx:1.17   "nginx -g 'daemon of…"   2 minutes ago   Up 2 seconds   0.0.0.0:80->80/tcp, :::80->80/tcp   web
+[root@single ~]# ps aux | grep "nginx"
+root       3929  0.4  0.0  10620  3436 ?        Ss   21:01   0:00 nginx: master process nginx -g daemon off;
+101        3954  0.0  0.0  11076  1500 ?        S    21:01   0:00 nginx: worker process
+root       3963  0.0  0.0 112812   980 pts/0    S+   21:01   0:00 grep --color=auto nginx
+[root@single ~]# kill 3929
+[root@single ~]# docker ps
+CONTAINER ID   IMAGE        COMMAND                  CREATED         STATUS         PORTS                               NAMES
+5352d51c8caf   nginx:1.17   "nginx -g 'daemon of…"   3 minutes ago   Up 2 seconds   0.0.0.0:80->80/tcp, :::80->80/tcp   web
+[root@single ~]# docker ps
+CONTAINER ID   IMAGE        COMMAND                  CREATED         STATUS         PORTS                               NAMES
+5352d51c8caf   nginx:1.17   "nginx -g 'daemon of…"   3 minutes ago   Up 7 seconds   0.0.0.0:80->80/tcp, :::80->80/tcp   web
+[root@single ~]# ps aux | grep "nginx"
+root       4063  0.4  0.0  10620  3436 ?        Ss   21:02   0:00 nginx: master process nginx -g daemon off;
+101        4083  0.0  0.0  11076  1504 ?        S    21:02   0:00 nginx: worker process
+root       4099  0.0  0.0 112812   980 pts/0    S+   21:02   0:00 grep --color=auto nginx
+[root@single ~]# docker top web
+UID                 PID                 PPID                C                   STIME               TTY                 TIME                CMD
+root                4063                4042                0                   21:02               ?                   00:00:00            nginx: master process nginx -g daemon off;
+101                 4083                4063                0                   21:02               ?                   00:00:00            nginx: worker process
+[root@single ~]# curl localhost
+<h2>hellow aaa</h2>
+[root@single ~]#
+```
