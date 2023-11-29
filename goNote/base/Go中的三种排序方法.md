@@ -118,6 +118,32 @@ sort.Sort(customSort{persons, func(x, y *Person) bool {
 }})
 ```
 
+## 字典排序
+
+
+我们都知道，字典是无序的，如果希望按照特定顺序遍历 map，可以先将键或值存储到切片中，然后对切片进行排序，最后再遍历切片。
+
+
+如果想要字典按 key 或者 value 排序的话，可以这样做。
+```go
+m := map[string]int{"Alice": 2, "Cecil": 1, "Bob": 3}
+
+keys := make([]string, 0, len(m))
+for k := range m {
+    keys = append(keys, k)
+}
+sort.Strings(keys)
+
+for _, k := range keys {
+    fmt.Println(k, m[k])
+}
+// Output:
+// Alice 2
+// Bob 3
+// Cecil 1
+```
+
+
 ## 排序具体的算法和复杂度
 
 
